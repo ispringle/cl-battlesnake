@@ -1,12 +1,18 @@
-FROM fukamachi/sbcl:latest-alpine AS builder
+FROM alpine:3.19 AS builder
 
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache sbcl git ca-certificates curl
+
+WORKDIR /tmp
+RUN curl -O https://beta.quicklisp.org/quicklisp.lisp && \
+    sbcl --non-interactive \
+         --load quicklisp.lisp \
+         --eval '(quicklisp-quickstart:install)' && \
+    printf '%s\n' '#-quicklisp' \
+           '(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))' \
+           '  (when (probe-file quicklisp-init)' \
+           '    (load quicklisp-init)))' > /root/.sbclrc
 
 WORKDIR /app
-RUN sbcl --non-interactive \
-    --eval "(ql:quickload :quicklisp)" \
-    --eval "(ql:add-to-init-file)" || true
-
 COPY . /app/
 
 RUN sbcl --non-interactive \
@@ -14,9 +20,9 @@ RUN sbcl --non-interactive \
     --eval "(ql:quickload :cl-battlesnake/examples)" \
     --eval "(quit)"
 
-FROM fukamachi/sbcl:latest-alpine
+FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache sbcl ca-certificates wget
 
 COPY --from=builder /root/quicklisp /root/quicklisp
 COPY --from=builder /root/.sbclrc /root/.sbclrc
