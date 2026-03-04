@@ -23,8 +23,7 @@ jobs:
         run: |
           curl -O https://beta.quicklisp.org/quicklisp.lisp
           sbcl --non-interactive --load quicklisp.lisp \
-            --eval '(quicklisp-quickstart:install :path "~/.quicklisp")' \
-            --eval '(ql:add-to-init-file)'
+            --eval '(quicklisp-quickstart:install :path "~/.quicklisp")'
 
       - name: Setup ASDF
         run: |
