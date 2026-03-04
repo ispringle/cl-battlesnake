@@ -182,6 +182,10 @@ bs:+up+ bs:+down+ bs:+left+ bs:+right+
                   '("up" "down" "left" "right") :test #'string=)))))
 ```
 
+## Play Against the Examples
+
+Challenge the live example snakes: [cl-battlesnake profile](https://play.battlesnake.com/profile/cl-battlesnake)
+
 ---
 
 **Dependencies:** hunchentoot, com.inuoe.jzon, alexandria (all via Quicklisp)
