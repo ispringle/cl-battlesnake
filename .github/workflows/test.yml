@@ -1,0 +1,52 @@
+name: cl-battlesnake examples
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SBCL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+
+      - name: Install Quicklisp
+        run: |
+          curl -O https://beta.quicklisp.org/quicklisp.lisp
+          sbcl --non-interactive --load quicklisp.lisp \
+            --eval '(quicklisp-quickstart:install :path "~/.quicklisp")' \
+            --eval '(ql:add-to-init-file)'
+
+      - name: Setup ASDF
+        run: |
+          mkdir -p ~/.config/common-lisp/source-registry.conf.d
+          echo "(:tree \"$GITHUB_WORKSPACE\")" > ~/.config/common-lisp/source-registry.conf.d/ci.conf
+
+      - name: Load cl-battlesnake/test
+        run: |
+          sbcl --non-interactive \
+            --load ~/.quicklisp/setup.lisp \
+            --eval '(ql:quickload "cl-battlesnake/test")'
+
+      - name: Run tests
+        run: |
+          sbcl --non-interactive \
+            --load ~/.quicklisp/setup.lisp \
+            --eval '(ql:quickload "cl-battlesnake/test")' \
+            --eval '(let ((result (cl-battlesnake/test:run-tests)))
+                      (if result
+                          (progn
+                            (format t "~%All tests passed!~%")
+                            (uiop:quit 0))
+                          (progn
+                            (format t "~%Some tests failed!~%")
+                            (uiop:quit 1))))'

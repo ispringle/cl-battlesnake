@@ -1,0 +1,36 @@
+# Git files
+.git/
+.gitignore
+.github/
+
+# Documentation
+*.md
+docs/
+
+# Build artifacts
+*.fasl
+*.fas
+*.lib
+*.mem
+*.x86f
+*.dfsl
+*.dx64fsl
+
+# Quicklisp local state (we'll use the image's Quicklisp)
+quicklisp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files (not needed in production)
+test/
+
+# Temporary files
+*.log
+*.tmp
+files.zip

@@ -1,0 +1,38 @@
+(in-package #:cl-battlesnake/examples)
+
+(defsnake cautious-snake
+  (:name "Cautious Carl" :color "#3366ff" :head "safe" :tail "round-bum"
+   :author "Ian S Pringle")
+  (:move (state)
+    (let* ((me     (game-state-you state))
+           (board  (game-state-board state))
+           (head   (snake-head me))
+           (safe   (safe-moves-avoiding-heads state))
+           (safe   (or safe (safe-moves state))))
+      (when (null safe)
+        (return-from on-move +up+))
+      (let ((scored (mapcar
+                     (lambda (dir)
+                       (let* ((dest (move-coord head dir))
+                              (area (reachable-area dest board)))
+                         (cons dir area)))
+                     safe)))
+        (let ((big-enough (remove-if (lambda (pair)
+                                       (< (cdr pair) (snake-length me)))
+                                     scored)))
+          (unless big-enough
+            (setf big-enough scored))
+          (let* ((sorted (sort (copy-list big-enough) #'> :key #'cdr))
+                 (best-area (cdr (first sorted)))
+                 (viable (remove-if (lambda (pair)
+                                      (< (cdr pair)
+                                         (* 0.8 best-area)))
+                                    sorted))
+                 (food (nearest-food head board)))
+            (if (and food (< (snake-health me) 40))
+                (car (first (sort (copy-list viable) #'<
+                                  :key (lambda (pair)
+                                         (manhattan-distance
+                                          (move-coord head (car pair))
+                                          food)))))
+                (car (first sorted)))))))))

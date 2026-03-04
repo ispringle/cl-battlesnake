@@ -1,0 +1,33 @@
+# ASDF build artifacts
+*.fasl
+*.dx64fsl
+*.dx32fsl
+*.lx64fsl
+*.lx32fsl
+*.x86f
+
+# Quicklisp
+quicklisp/
+
+# SBCL
+*.core
+
+# LispWorks
+*.nfasl
+
+# Clozure CL
+*.dfsl
+
+# CMUCL
+*.sparcf
+
+# Editor artifacts
+*~
+*.swp
+*.swo
+.#*
+\#*\#
+
+# OS artifacts
+.DS_Store
+Thumbs.db
