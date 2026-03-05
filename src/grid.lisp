@@ -6,12 +6,11 @@
   "Return the coordinate resulting from moving COORD in DIRECTION."
   (let ((x (coord-x coord))
         (y (coord-y coord)))
-    (cond
-      ((string= direction +up+)    (make-coord x (1+ y)))
-      ((string= direction +down+)  (make-coord x (1- y)))
-      ((string= direction +left+)  (make-coord (1- x) y))
-      ((string= direction +right+) (make-coord (1+ x) y))
-      (t (error "Unknown direction: ~A" direction)))))
+    (ecase direction
+      (:up    (make-coord x (1+ y)))
+      (:down  (make-coord x (1- y)))
+      (:left  (make-coord (1- x) y))
+      (:right (make-coord (1+ x) y)))))
 
 (defun neighbors (coord)
   "Return an alist of (direction . coord) for all four neighbors."

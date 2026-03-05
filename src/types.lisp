@@ -2,10 +2,18 @@
 
 ;;; --- Directions ---
 
-(alexandria:define-constant +up+    "up" :test #'string=)
-(alexandria:define-constant +down+  "down" :test #'string=)
-(alexandria:define-constant +left+  "left" :test #'string=)
-(alexandria:define-constant +right+ "right" :test #'string=)
+(defconstant +up+    :up)
+(defconstant +down+  :down)
+(defconstant +left+  :left)
+(defconstant +right+ :right)
+
+(defun direction-string (dir)
+  "Convert a direction keyword to its JSON string representation."
+  (ecase dir
+    (:up "up")
+    (:down "down")
+    (:left "left")
+    (:right "right")))
 
 (defun all-directions ()
   (list +up+ +down+ +left+ +right+))

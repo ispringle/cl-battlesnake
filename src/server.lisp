@@ -80,11 +80,11 @@
                (state (when json (parse-game-state json))))
           (if state
               (multiple-value-bind (direction shout) (on-move snake state)
-                (let ((response `(("move" . ,(or direction +up+)))))
+                (let ((response `(("move" . ,(direction-string (or direction +up+))))))
                   (when (and shout (stringp shout) (plusp (length shout)))
                     (push (cons "shout" shout) response))
                   (json-response (alist-to-hash response))))
-              (json-response (alist-to-hash `(("move" . ,+up+))))))
+              (json-response (alist-to-hash `(("move" . ,(direction-string +up+)))))))
         (progn
           (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
           (json-response (alist-to-hash '(("error" . "Snake not found"))))))))

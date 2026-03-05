@@ -5,7 +5,7 @@
   :version "0.1.0"
   :homepage "https://github.com/ispringle/cl-battlesnake"
   :source-control (:git "https://github.com/ispringle/cl-battlesnake.git")
-  :depends-on ("hunchentoot" "com.inuoe.jzon" "alexandria")
+  :depends-on ("hunchentoot" "com.inuoe.jzon")
   :serial t
   :pathname "src/"
   :components ((:file "package")

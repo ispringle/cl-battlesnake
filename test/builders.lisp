@@ -64,7 +64,7 @@
   "Assert SNAKE-CLASS chooses EXPECTED-DIRECTION."
   (let* ((instance (make-instance snake-class))
          (move (on-move instance state)))
-    (is (string= expected-direction move)
+    (is (eq expected-direction move)
         "~@[~A: ~]Expected ~A but got ~A" msg expected-direction move)))
 
 (defun assert-move-not (snake-class state bad-direction
@@ -72,7 +72,7 @@
   "Assert SNAKE-CLASS does NOT choose BAD-DIRECTION."
   (let* ((instance (make-instance snake-class))
          (move (on-move instance state)))
-    (is (not (string= bad-direction move))
+    (is (not (eq bad-direction move))
         "~@[~A: ~]Expected anything but ~A, got ~A" msg bad-direction move)))
 
 (defun assert-moves (snake-class state allowed-directions
@@ -80,7 +80,7 @@
   "Assert the snake's move is one of ALLOWED-DIRECTIONS."
   (let* ((instance (make-instance snake-class))
          (move (on-move instance state)))
-    (is (member move allowed-directions :test #'string=)
+    (is (member move allowed-directions)
         "~@[~A: ~]Expected one of ~A but got ~A"
         msg allowed-directions move)))
 

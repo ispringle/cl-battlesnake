@@ -26,7 +26,7 @@
   "Always returns one of the four direction strings."
   (let ((state (make-test-state :you-body '((5 5)))))
     (let ((move (on-move (make-instance 'random-snake) state)))
-      (is (member move (all-directions) :test #'string=)))))
+      (is (member move (all-directions))))))
 
 ;;; --- Hungry snake ---
 
@@ -67,7 +67,7 @@
     ;; Best move toward food: up (distance 2) vs left (distance 3).
     (let ((move (on-move (make-instance 'hungry-snake) state)))
       ;; Should pick up or left (both safe), up is closer to food
-      (is (member move (list +up+ +left+) :test #'string=)))))
+      (is (member move (list +up+ +left+))))))
 
 ;;; --- Cautious snake ---
 
@@ -94,7 +94,7 @@
                   ". . . . . . ."))))
     (let ((move (on-move (make-instance 'cautious-snake) state)))
       ;; Should prefer the open area (up or left), not right into the bottleneck
-      (is (member move (list +up+ +left+) :test #'string=)
+      (is (member move (list +up+ +left+))
           "Should avoid moving toward cramped area"))))
 
 (test cautious-snake-chases-food-when-hungry

@@ -59,8 +59,8 @@
                                 :board-height 11 :board-width 11)))
     (let ((moves (safe-moves state)))
       (is (= 2 (length moves)))
-      (is (member +up+ moves :test #'string=))
-      (is (member +right+ moves :test #'string=)))))
+      (is (member +up+ moves))
+      (is (member +right+ moves)))))
 
 (test safe-moves-avoids-self
   "Won't move into own body."
@@ -68,7 +68,7 @@
   (let ((state (make-test-state :you-body '((5 5) (5 4) (5 3)))))
     (let ((moves (safe-moves state)))
       ;; Down would hit body at (5,4)
-      (is (not (member +down+ moves :test #'string=))))))
+      (is (not (member +down+ moves))))))
 
 (test safe-moves-avoids-enemy
   "Won't move into enemy body."
@@ -78,7 +78,7 @@
                                  :enemies (list enemy))))
     (let ((moves (safe-moves state)))
       ;; Right would hit enemy at (6,5)
-      (is (not (member +right+ moves :test #'string=))))))
+      (is (not (member +right+ moves))))))
 
 (test safe-moves-avoiding-heads-filters-bigger
   "Avoids cells adjacent to bigger enemy heads."
@@ -90,7 +90,7 @@
                                  :enemies (list enemy))))
     (let ((cautious (safe-moves-avoiding-heads state)))
       ;; (6,5) is adjacent to enemy head (7,5), so right should be excluded
-      (is (not (member +right+ cautious :test #'string=))))))
+      (is (not (member +right+ cautious))))))
 
 ;;; --- Distance ---
 
@@ -109,10 +109,10 @@
     (is (null (nearest-food (c 5 5) board)))))
 
 (test direction-toward-basic
-  (is (string= +right+ (direction-toward (c 0 0) (c 5 0))))
-  (is (string= +up+    (direction-toward (c 0 0) (c 0 5))))
-  (is (string= +left+  (direction-toward (c 5 0) (c 0 0))))
-  (is (string= +down+  (direction-toward (c 0 5) (c 0 0)))))
+  (is (eq +right+ (direction-toward (c 0 0) (c 5 0))))
+  (is (eq +up+    (direction-toward (c 0 0) (c 0 5))))
+  (is (eq +left+  (direction-toward (c 5 0) (c 0 0))))
+  (is (eq +down+  (direction-toward (c 0 5) (c 0 0)))))
 
 ;;; --- Flood fill ---
 

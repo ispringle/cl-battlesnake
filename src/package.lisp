@@ -4,6 +4,7 @@
   (:export
    #:+up+ #:+down+ #:+left+ #:+right+
    #:all-directions
+   #:direction-string
    #:coord #:make-coord #:coord-x #:coord-y #:coord=
    #:snake #:snake-id #:snake-name #:snake-health #:snake-body
    #:snake-head #:snake-length #:snake-latency #:snake-shout #:snake-squad
