@@ -13,7 +13,9 @@
       (cond
         ((zerop (safe-moves-count bv)) +up+)
         ((null food) (nth (random (length safe)) safe))
-        (t (first (sort (copy-list safe) #'<
-                        :key (lambda (dir)
-                               (manhattan-distance
-                                (move-coord head dir) food)))))))))
+        (t (let ((sorted-safe (sort (copy-list safe) #'<
+                                    :key (lambda (dir)
+                                           (manhattan-distance
+                                            (move-coord head dir) food)))))
+             (declare (dynamic-extent sorted-safe))
+             (first sorted-safe)))))))

@@ -18,6 +18,7 @@
                               (area (reachable-area dest board)))
                          (cons dir area)))
                      safe)))
+        (declare (dynamic-extent scored))
         (let ((big-enough (remove-if (lambda (pair)
                                        (< (cdr pair) (snake-length me)))
                                      scored)))

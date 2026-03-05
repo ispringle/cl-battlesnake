@@ -64,8 +64,10 @@ Avoids: out of bounds, self-collision, other snake bodies.
 Uses a bit-array occupancy grid for O(1) collision checks."
   (let* ((head  (snake-head (game-state-you state)))
          (board (game-state-board state))
+<<<<<<< HEAD
          (occ   (make-occupancy-grid board))
          (bv    (make-safe-moves)))
+    (declare (dynamic-extent occ))
     (dolist (dir (all-directions) bv)
       (let ((dest (move-coord head dir)))
         (unless (and (in-bounds-p dest board)
@@ -148,7 +150,8 @@ Uses bit-arrays and a flat queue for zero cons-cell allocation."
          (count 0))
     (declare (type fixnum w h qhead qtail count max-cells)
              (type (simple-array bit (* *)) visited occupied)
-             (type (simple-array fixnum (*)) qx qy))
+             (type (simple-array fixnum (*)) qx qy)
+             (dynamic-extent qx qy occupied))
     ;; Precompute occupancy grid from snake bodies
     (unless ignore-snakes
       (dolist (snake (board-snakes board))
