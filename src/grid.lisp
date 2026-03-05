@@ -99,25 +99,57 @@ Prefers the axis with the larger delta."
 ;;; --- Flood fill ---
 
 (defun flood-fill (start board &key (ignore-snakes nil))
-  "BFS flood fill from START, returning the set of reachable coordinates.
-Respects board bounds and snake bodies (unless IGNORE-SNAKES)."
-  (let ((visited (make-hash-table :test 'equal))
-        (queue   (list start))
-        (bodies  (unless ignore-snakes (all-snake-cells board))))
-    (flet ((coord-key (c) (cons (coord-x c) (coord-y c))))
-      (setf (gethash (coord-key start) visited) t)
-      (loop while queue
-            for current = (pop queue)
-            do (loop for (nil . neighbor) in (neighbors current)
-                     for key = (coord-key neighbor)
-                     when (and (in-bounds-p neighbor board)
-                               (not (gethash key visited))
-                               (or ignore-snakes
-                                   (not (coord-member neighbor bodies))))
-                       do (setf (gethash key visited) t)
-                          (push neighbor queue)))
-      ;; Return count and hash-table
-      (values (hash-table-count visited) visited))))
+  "BFS flood fill from START. Returns (values count visited-bit-array).
+Uses bit-arrays and a flat queue for zero cons-cell allocation."
+  (let* ((w (board-width board))
+         (h (board-height board))
+         (visited (make-array (list w h) :element-type 'bit :initial-element 0))
+         (occupied (make-array (list w h) :element-type 'bit :initial-element 0))
+         (max-cells (* w h))
+         (qx (make-array max-cells :element-type 'fixnum))
+         (qy (make-array max-cells :element-type 'fixnum))
+         (qhead 0)
+         (qtail 0)
+         (count 0))
+    (declare (type fixnum w h qhead qtail count max-cells)
+             (type (simple-array bit (* *)) visited occupied)
+             (type (simple-array fixnum (*)) qx qy))
+    ;; Precompute occupancy grid from snake bodies
+    (unless ignore-snakes
+      (dolist (snake (board-snakes board))
+        (dolist (seg (snake-body snake))
+          (let ((sx (coord-x seg)) (sy (coord-y seg)))
+            (when (and (>= sx 0) (< sx w) (>= sy 0) (< sy h))
+              (setf (aref occupied sx sy) 1))))))
+    ;; Seed the start position
+    (let ((sx (coord-x start)) (sy (coord-y start)))
+      (setf (aref visited sx sy) 1
+            (aref qx qtail) sx
+            (aref qy qtail) sy)
+      (incf qtail)
+      (incf count))
+    ;; BFS with inlined neighbor checks
+    (loop while (< qhead qtail) do
+      (let ((cx (aref qx qhead)) (cy (aref qy qhead)))
+        (declare (type fixnum cx cy))
+        (incf qhead)
+        (macrolet ((try-neighbor (nx-form ny-form)
+                     `(let ((nx ,nx-form) (ny ,ny-form))
+                        (declare (type fixnum nx ny))
+                        (when (and (>= nx 0) (< nx w)
+                                   (>= ny 0) (< ny h)
+                                   (zerop (aref visited nx ny))
+                                   (zerop (aref occupied nx ny)))
+                          (setf (aref visited nx ny) 1
+                                (aref qx qtail) nx
+                                (aref qy qtail) ny)
+                          (incf qtail)
+                          (incf count)))))
+          (try-neighbor (1+ cx) cy)
+          (try-neighbor (1- cx) cy)
+          (try-neighbor cx (1+ cy))
+          (try-neighbor cx (1- cy)))))
+    (values count visited)))
 
 (defun reachable-area (coord board)
   "Number of cells reachable from COORD via flood fill."
