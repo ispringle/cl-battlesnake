@@ -8,16 +8,38 @@
 (defvar *server* nil
   "The active hunchentoot acceptor.")
 
-(defun json-response (data)
-  "Set content type to JSON and return encoded string."
-  (setf (hunchentoot:content-type*) "application/json")
-  (com.inuoe.jzon:stringify data))
+;;; --- JSON encoding (hand-rolled, responses are fixed-shape) ---
 
-(defun alist-to-hash (alist)
-  "Convert an alist to a hash-table for jzon serialization."
-  (let ((ht (make-hash-table :test 'equal)))
-    (loop for (k . v) in alist do (setf (gethash k ht) v))
-    ht))
+(defun escape-json-string (s)
+  "Escape a string for safe JSON embedding."
+  (with-output-to-string (out)
+    (loop for c across s do
+      (case c
+        (#\" (write-string "\\\"" out))
+        (#\\ (write-string "\\\\" out))
+        (#\Newline (write-string "\\n" out))
+        (#\Return (write-string "\\r" out))
+        (#\Tab (write-string "\\t" out))
+        (t (write-char c out))))))
+
+(defun move-json (direction &optional shout)
+  "Build JSON response for a move. DIRECTION is a string like \"up\"."
+  (if (and shout (stringp shout) (plusp (length shout)))
+      (format nil "{\"move\":\"~A\",\"shout\":\"~A\"}"
+              direction (escape-json-string shout))
+      (format nil "{\"move\":\"~A\"}" direction)))
+
+(defun encode-snake-info (info-alist)
+  "Encode snake-info alist as JSON. Keys are strings."
+  (format nil "{~{\"~A\":\"~A\"~^,~}}"
+          (loop for (k . v) in info-alist
+                collect (escape-json-string k)
+                collect (escape-json-string v))))
+
+(defun json-response (json-string)
+  "Set content type to JSON and return the string."
+  (setf (hunchentoot:content-type*) "application/json")
+  json-string)
 
 ;;; --- Route handlers ---
 
@@ -50,10 +72,10 @@
          (snake-path (extract-snake-path uri))
          (snake (get-snake-for-path snake-path)))
     (if snake
-        (json-response (alist-to-hash (snake-info snake)))
+        (json-response (encode-snake-info (snake-info snake)))
         (progn
           (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response (alist-to-hash '(("error" . "Snake not found"))))))))
+          (json-response "{\"error\":\"Snake not found\"}")))))
 
 (defun handle-multi-start ()
   "POST /<path>/start - Game is starting."
@@ -65,10 +87,10 @@
                (state (when json (parse-game-state json))))
           (when state
             (on-start snake state))
-          (json-response (alist-to-hash '(("ok" . "true")))))
+          (json-response "{\"ok\":\"true\"}"))
         (progn
           (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response (alist-to-hash '(("error" . "Snake not found"))))))))
+          (json-response "{\"error\":\"Snake not found\"}")))))
 
 (defun handle-multi-move ()
   "POST /<path>/move - Return move."
@@ -80,14 +102,11 @@
                (state (when json (parse-game-state json))))
           (if state
               (multiple-value-bind (direction shout) (on-move snake state)
-                (let ((response `(("move" . ,(direction-string (or direction +up+))))))
-                  (when (and shout (stringp shout) (plusp (length shout)))
-                    (push (cons "shout" shout) response))
-                  (json-response (alist-to-hash response))))
-              (json-response (alist-to-hash `(("move" . ,(direction-string +up+)))))))
+                (json-response (move-json (direction-string (or direction +up+)) shout)))
+              (json-response (move-json (direction-string +up+))))
         (progn
           (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response (alist-to-hash '(("error" . "Snake not found"))))))))
+          (json-response "{\"error\":\"Snake not found\"}")))))
 
 (defun handle-multi-end ()
   "POST /<path>/end - Game has ended."
@@ -99,10 +118,10 @@
                (state (when json (parse-game-state json))))
           (when state
             (on-end snake state))
-          (json-response (alist-to-hash '(("ok" . "true")))))
+          (json-response "{\"ok\":\"true\"}"))
         (progn
           (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response (alist-to-hash '(("error" . "Snake not found"))))))))
+          (json-response "{\"error\":\"Snake not found\"}")))))
 
 ;;; --- Dispatch ---
 
