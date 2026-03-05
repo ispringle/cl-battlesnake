@@ -28,6 +28,17 @@
 
 ;;; --- Occupancy ---
 
+(defun make-occupancy-grid (board)
+  "Build a 2D bit-array marking all snake-occupied cells."
+  (let* ((w (board-width board))
+         (h (board-height board))
+         (grid (make-array (list w h) :element-type 'bit :initial-element 0)))
+    (dolist (snake (board-snakes board) grid)
+      (dolist (seg (snake-body snake))
+        (let ((x (coord-x seg)) (y (coord-y seg)))
+          (when (and (>= x 0) (< x w) (>= y 0) (< y h))
+            (setf (aref grid x y) 1)))))))
+
 (defun all-snake-cells (board)
   "Return a list of all coordinates occupied by any snake body."
   (loop for s in (board-snakes board)
@@ -49,32 +60,44 @@
 
 (defun safe-moves (state)
   "Return a 4-bit vector indicating safe directions.
-Avoids: out of bounds, self-collision, other snake bodies."
+Avoids: out of bounds, self-collision, other snake bodies.
+Uses a bit-array occupancy grid for O(1) collision checks."
   (let* ((head  (snake-head (game-state-you state)))
          (board (game-state-board state))
-         (bodies (all-snake-cells board))
-         (bv (make-safe-moves)))
+         (occ   (make-occupancy-grid board))
+         (bv    (make-safe-moves)))
     (dolist (dir (all-directions) bv)
       (let ((dest (move-coord head dir)))
         (unless (and (in-bounds-p dest board)
-                     (not (coord-member dest bodies)))
+                     (zerop (aref occ (coord-x dest) (coord-y dest))))
           (mark-unsafe bv dir))))))
 
 (defun safe-moves-avoiding-heads (state)
   "Like SAFE-MOVES but also avoids cells adjacent to longer/equal enemy heads.
-Returns a 4-bit vector."
+Returns a 4-bit vector. Uses occupancy grid and danger grid for O(1) checks."
   (let* ((me     (game-state-you state))
          (board  (game-state-board state))
          (my-len (snake-length me))
+         (w      (board-width board))
+         (h      (board-height board))
          (bv     (safe-moves state))
-         ;; cells next to enemy heads that are at least as long
-         (danger (loop for s in (board-snakes board)
-                       unless (string= (snake-id s) (snake-id me))
-                         when (>= (snake-length s) my-len)
-                           nconc (mapcar #'cdr (neighbors (snake-head s))))))
+         (head   (snake-head me))
+         ;; Build a danger grid for cells adjacent to bigger/equal enemy heads
+         (danger (make-array (list w h) :element-type 'bit :initial-element 0)))
+    (dolist (s (board-snakes board))
+      (unless (string= (snake-id s) (snake-id me))
+        (when (>= (snake-length s) my-len)
+          (dolist (pair (neighbors (snake-head s)))
+            (let* ((c (cdr pair))
+                   (cx (coord-x c))
+                   (cy (coord-y c)))
+              (when (and (>= cx 0) (< cx w) (>= cy 0) (< cy h))
+                (setf (aref danger cx cy) 1)))))))
     (dolist (dir (all-directions) bv)
       (when (and (safe-move-p bv dir)
-                 (coord-member (move-coord (snake-head me) dir) danger))
+                 (let ((dest (move-coord head dir)))
+                   (and (in-bounds-p dest board)
+                        (= 1 (aref danger (coord-x dest) (coord-y dest))))))
         (mark-unsafe bv dir)))))
 
 ;;; --- Distance ---
@@ -85,11 +108,19 @@ Returns a 4-bit vector."
      (abs (- (coord-y a) (coord-y b)))))
 
 (defun nearest-food (coord board)
-  "Return the nearest food coordinate (by Manhattan distance), or NIL."
-  (let ((foods (board-food board)))
-    (when foods
-      (first (sort (copy-list foods)
-                   #'< :key (lambda (f) (manhattan-distance coord f)))))))
+  "Return the nearest food coordinate (by Manhattan distance), or NIL.
+Iterates without sorting or copying for zero allocation."
+  (let ((foods (board-food board))
+        (best nil)
+        (best-dist most-positive-fixnum))
+    (dolist (f foods best)
+      (let ((d (manhattan-distance coord f)))
+        (when (< d best-dist)
+          (setf best f best-dist d))))))
+
+(defun food-coords-array (board)
+  "Return food as a simple-vector of coords for cache-friendly iteration."
+  (coerce (board-food board) 'simple-vector))
 
 (defun direction-toward (from to)
   "Return the direction that moves FROM closer to TO.

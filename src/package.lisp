@@ -12,6 +12,7 @@
    #:game #:game-id #:game-ruleset #:game-timeout #:game-source
    #:game-state #:game-state-game #:game-state-turn #:game-state-board #:game-state-you
    #:move-coord #:neighbors #:in-bounds-p #:occupied-p #:coord-member
+   #:make-occupancy-grid #:food-coords-array
    #:manhattan-distance #:nearest-food #:direction-toward
    #:flood-fill #:reachable-area
    #:direction-index #:index-direction
