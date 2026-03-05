@@ -1,6 +1,6 @@
 FROM alpine:3.19 AS builder
 
-RUN apk add --no-cache sbcl git ca-certificates curl libev-dev
+RUN apk add --no-cache sbcl git ca-certificates curl libev-dev gcc musl-dev
 
 WORKDIR /tmp
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp && \
@@ -22,7 +22,7 @@ RUN sbcl --non-interactive \
 
 FROM alpine:3.19
 
-RUN apk add --no-cache sbcl ca-certificates wget libev
+RUN apk add --no-cache sbcl ca-certificates wget libev gcc musl-dev
 
 COPY --from=builder /root/quicklisp /root/quicklisp
 COPY --from=builder /root/.sbclrc /root/.sbclrc
