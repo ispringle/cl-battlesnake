@@ -6,7 +6,7 @@
   "Hash table mapping paths to snake instances for multi-snake mode.")
 
 (defvar *server* nil
-  "The active hunchentoot acceptor.")
+  "The active Clack server handle.")
 
 ;;; --- JSON encoding (hand-rolled, responses are fixed-shape) ---
 
@@ -36,12 +36,18 @@
                 collect (escape-json-string k)
                 collect (escape-json-string v))))
 
-(defun json-response (json-string)
-  "Set content type to JSON and return the string."
-  (setf (hunchentoot:content-type*) "application/json")
-  json-string)
+;;; --- Clack response helpers ---
 
-;;; --- Route handlers ---
+(defun json-ok (body-string)
+  "Return a Clack 200 response with JSON content type."
+  (list 200 '(:content-type "application/json") (list body-string)))
+
+(defun json-not-found ()
+  "Return a Clack 404 response."
+  (list 404 '(:content-type "application/json")
+        (list "{\"error\":\"not found\"}")))
+
+;;; --- Route helpers ---
 
 (defun extract-snake-path (uri)
   "Extract the snake path prefix from a URI.
@@ -66,76 +72,73 @@
   (when (and *snake-instances* path)
     (gethash path *snake-instances*)))
 
-(defun handle-multi-index ()
-  "GET /<path>/ - Return snake customization info."
-  (let* ((uri (hunchentoot:request-uri*))
-         (snake-path (extract-snake-path uri))
-         (snake (get-snake-for-path snake-path)))
-    (if snake
-        (json-response (encode-snake-info (snake-info snake)))
-        (progn
-          (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response "{\"error\":\"Snake not found\"}")))))
+(defun ends-with-p (suffix string)
+  "Return T if STRING ends with SUFFIX."
+  (let ((slen (length suffix))
+        (len (length string)))
+    (and (>= len slen)
+         (string= suffix string :start2 (- len slen)))))
 
-(defun handle-multi-start ()
-  "POST /<path>/start - Game is starting."
-  (let* ((uri (hunchentoot:request-uri*))
-         (snake-path (extract-snake-path uri))
-         (snake (get-snake-for-path snake-path)))
-    (if snake
-        (let* ((json  (read-json-body))
-               (state (when json (parse-game-state json))))
-          (when state
-            (on-start snake state))
-          (json-response "{\"ok\":\"true\"}"))
-        (progn
-          (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response "{\"error\":\"Snake not found\"}")))))
+(defun determine-endpoint (path-info)
+  "Determine which endpoint a path-info refers to.
+   Returns :start, :move, :end, or :info."
+  (cond
+    ((ends-with-p "/start" path-info) :start)
+    ((ends-with-p "/move" path-info) :move)
+    ((ends-with-p "/end" path-info) :end)
+    ;; Bare endpoints at root: /start, /move, /end
+    ((string= path-info "/start") :start)
+    ((string= path-info "/move") :move)
+    ((string= path-info "/end") :end)
+    ;; Everything else is info (including / and /path/)
+    (t :info)))
 
-(defun handle-multi-move ()
-  "POST /<path>/move - Return move."
-  (let* ((uri (hunchentoot:request-uri*))
-         (snake-path (extract-snake-path uri))
-         (snake (get-snake-for-path snake-path)))
-    (if snake
-        (let* ((json  (read-json-body))
-               (state (when json (parse-game-state json))))
-          (if state
-              (multiple-value-bind (direction shout) (on-move snake state)
-                (json-response (move-json (direction-string (or direction +up+)) shout)))
-              (json-response (move-json (direction-string +up+))))
-        (progn
-          (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response "{\"error\":\"Snake not found\"}")))))
+;;; --- Clack App ---
 
-(defun handle-multi-end ()
-  "POST /<path>/end - Game has ended."
-  (let* ((uri (hunchentoot:request-uri*))
-         (snake-path (extract-snake-path uri))
-         (snake (get-snake-for-path snake-path)))
-    (if snake
-        (let* ((json  (read-json-body))
-               (state (when json (parse-game-state json))))
-          (when state
-            (on-end snake state))
-          (json-response "{\"ok\":\"true\"}"))
-        (progn
-          (setf (hunchentoot:return-code*) hunchentoot:+http-not-found+)
-          (json-response "{\"error\":\"Snake not found\"}")))))
-
-;;; --- Dispatch ---
-
-(defun make-multi-snake-dispatch-table ()
-  "Create Hunchentoot dispatch table for multi-snake mode with path prefixes."
-  (list
-   ;; Match /<path>/ or just / (trailing slash required for info endpoint)
-   (hunchentoot:create-regex-dispatcher "^/([^/]+/)?$" 'handle-multi-index)
-   ;; Match /<path>/start or /start
-   (hunchentoot:create-regex-dispatcher "^/([^/]+/)?start$" 'handle-multi-start)
-   ;; Match /<path>/move or /move
-   (hunchentoot:create-regex-dispatcher "^/([^/]+/)?move$" 'handle-multi-move)
-   ;; Match /<path>/end or /end
-   (hunchentoot:create-regex-dispatcher "^/([^/]+/)?end$" 'handle-multi-end)))
+(defun make-app ()
+  "Create a Clack application lambda that dispatches requests to snakes."
+  (lambda (env)
+    (let* ((method (getf env :request-method))
+           (path-info (getf env :path-info))
+           (snake-path (extract-snake-path path-info))
+           (snake (get-snake-for-path snake-path))
+           (endpoint (determine-endpoint path-info)))
+      (cond
+        ;; GET info
+        ((and (eq method :GET) (eq endpoint :info))
+         (if snake
+             (json-ok (encode-snake-info (snake-info snake)))
+             (json-not-found)))
+        ;; POST start
+        ((and (eq method :POST) (eq endpoint :start))
+         (if snake
+             (let* ((json  (read-json-body env))
+                    (state (when json (parse-game-state json))))
+               (when state
+                 (on-start snake state))
+               (json-ok "{\"ok\":\"true\"}"))
+             (json-not-found)))
+        ;; POST move
+        ((and (eq method :POST) (eq endpoint :move))
+         (if snake
+             (let* ((json  (read-json-body env))
+                    (state (when json (parse-game-state json))))
+               (if state
+                   (multiple-value-bind (direction shout) (on-move snake state)
+                     (json-ok (move-json (direction-string (or direction +up+)) shout)))
+                   (json-ok (move-json (direction-string +up+)))))
+             (json-not-found)))
+        ;; POST end
+        ((and (eq method :POST) (eq endpoint :end))
+         (if snake
+             (let* ((json  (read-json-body env))
+                    (state (when json (parse-game-state json))))
+               (when state
+                 (on-end snake state))
+               (json-ok "{\"ok\":\"true\"}"))
+             (json-not-found)))
+        ;; Unknown route
+        (t (json-not-found))))))
 
 ;;; --- Start / Stop ---
 
@@ -160,10 +163,9 @@
            (format t "~&Registered snake '~A' at path ~A~%"
                    (snake-info-name instance) path))
 
-  ;; Start server with multi-snake dispatch table
-  (setf *server* (make-instance 'hunchentoot:easy-acceptor :port port))
-  (setf hunchentoot:*dispatch-table* (make-multi-snake-dispatch-table))
-  (hunchentoot:start *server*)
+  ;; Start server with Clack + Woo
+  (setf *server* (clack:clackup (make-app) :server :woo :port port
+                                :use-default-middlewares nil))
   (format t "~&Multi-snake server running on port ~D with ~D snakes~%"
           port (hash-table-count *snake-instances*))
   *server*)
@@ -171,7 +173,7 @@
 (defun stop-server ()
   "Stop the running Battlesnake server."
   (when *server*
-    (hunchentoot:stop *server*)
+    (clack:stop *server*)
     (setf *server* nil)
     (setf *snake-instances* nil)
     (format t "~&Server stopped.~%")))

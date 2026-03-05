@@ -59,8 +59,11 @@
    :board (parse-board (gethash "board" ht))
    :you   (parse-snake (gethash "you" ht))))
 
-(defun read-json-body ()
-  "Read and parse the JSON body from the current Hunchentoot request."
-  (let ((body (hunchentoot:raw-post-data :force-text t)))
-    (when (and body (plusp (length body)))
-      (com.inuoe.jzon:parse body))))
+(defun read-json-body (env)
+  "Read and parse JSON body from a Clack env."
+  (let ((stream (getf env :raw-body))
+        (len (getf env :content-length)))
+    (when (and stream len (plusp len))
+      (let ((buf (make-array len :element-type '(unsigned-byte 8))))
+        (read-sequence buf stream)
+        (com.inuoe.jzon:parse (sb-ext:octets-to-string buf :external-format :utf-8))))))

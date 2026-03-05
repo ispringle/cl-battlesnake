@@ -25,7 +25,7 @@
        (unwind-protect
             (progn
               (setf ,server (start-server ',snake-class :port ,port))
-              ;; Give hunchentoot a moment to bind
+              ;; Give server a moment to bind
               (sleep 0.2)
               ,@body)
          (when ,server
@@ -116,7 +116,7 @@
             (progn
               (setf ,server (cl-battlesnake:start-multi-snake-server ',snake-configs
                                                                      :port *test-port*))
-              ;; Give hunchentoot a moment to bind
+              ;; Give server a moment to bind
               (sleep 0.2)
               ,@body)
          (when ,server
