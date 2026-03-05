@@ -51,24 +51,24 @@
   "In the center of an empty board, all 4 moves are safe."
   (let ((state (make-test-state :you-body '((5 5))
                                 :board-height 11 :board-width 11)))
-    (is (= 4 (length (safe-moves state))))))
+    (is (= 4 (safe-moves-count (safe-moves state))))))
 
 (test safe-moves-corner
   "In bottom-left corner, only up and right are safe."
   (let ((state (make-test-state :you-body '((0 0))
                                 :board-height 11 :board-width 11)))
-    (let ((moves (safe-moves state)))
-      (is (= 2 (length moves)))
-      (is (member +up+ moves))
-      (is (member +right+ moves)))))
+    (let ((bv (safe-moves state)))
+      (is (= 2 (safe-moves-count bv)))
+      (is (safe-move-p bv +up+))
+      (is (safe-move-p bv +right+)))))
 
 (test safe-moves-avoids-self
   "Won't move into own body."
   ;; Snake at (5,5) with body going down
   (let ((state (make-test-state :you-body '((5 5) (5 4) (5 3)))))
-    (let ((moves (safe-moves state)))
+    (let ((bv (safe-moves state)))
       ;; Down would hit body at (5,4)
-      (is (not (member +down+ moves))))))
+      (is (not (safe-move-p bv +down+))))))
 
 (test safe-moves-avoids-enemy
   "Won't move into enemy body."
@@ -76,9 +76,9 @@
                                  :body '((6 5) (7 5) (8 5))))
          (state (make-test-state :you-body '((5 5))
                                  :enemies (list enemy))))
-    (let ((moves (safe-moves state)))
+    (let ((bv (safe-moves state)))
       ;; Right would hit enemy at (6,5)
-      (is (not (member +right+ moves))))))
+      (is (not (safe-move-p bv +right+))))))
 
 (test safe-moves-avoiding-heads-filters-bigger
   "Avoids cells adjacent to bigger enemy heads."
@@ -88,9 +88,9 @@
          ;; We're at (5,5), length 3
          (state (make-test-state :you-body '((5 5) (5 4) (5 3))
                                  :enemies (list enemy))))
-    (let ((cautious (safe-moves-avoiding-heads state)))
+    (let ((bv (safe-moves-avoiding-heads state)))
       ;; (6,5) is adjacent to enemy head (7,5), so right should be excluded
-      (is (not (member +right+ cautious))))))
+      (is (not (safe-move-p bv +right+))))))
 
 ;;; --- Distance ---
 

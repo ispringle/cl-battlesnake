@@ -70,3 +70,39 @@
   (turn 0 :type fixnum)
   (board nil)                     ; board
   (you  nil))                     ; snake
+
+;;; --- Bitvector safe-moves representation ---
+
+(defconstant +dir-up+    0)
+(defconstant +dir-down+  1)
+(defconstant +dir-left+  2)
+(defconstant +dir-right+ 3)
+
+(defun direction-index (dir)
+  "Return the bit index for a direction keyword."
+  (ecase dir (:up 0) (:down 1) (:left 2) (:right 3)))
+
+(defun index-direction (idx)
+  "Return the direction keyword for a bit index."
+  (ecase idx (0 :up) (1 :down) (2 :left) (3 :right)))
+
+(defun make-safe-moves ()
+  "Return a fresh 4-bit vector with all moves safe."
+  (make-array 4 :element-type 'bit :initial-element 1))
+
+(defun safe-move-p (bv dir)
+  "Is DIR safe in bitvector BV?"
+  (= 1 (sbit bv (direction-index dir))))
+
+(defun mark-unsafe (bv dir)
+  "Mark DIR as unsafe in bitvector BV."
+  (setf (sbit bv (direction-index dir)) 0)
+  bv)
+
+(defun safe-moves-list (bv)
+  "Convert a safe-moves bitvector to a list of direction keywords."
+  (loop for i below 4 when (= 1 (sbit bv i)) collect (index-direction i)))
+
+(defun safe-moves-count (bv)
+  "Count of safe moves in bitvector."
+  (count 1 bv))

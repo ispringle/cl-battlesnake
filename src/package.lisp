@@ -14,6 +14,9 @@
    #:move-coord #:neighbors #:in-bounds-p #:occupied-p #:coord-member
    #:manhattan-distance #:nearest-food #:direction-toward
    #:flood-fill #:reachable-area
+   #:direction-index #:index-direction
+   #:make-safe-moves #:safe-move-p #:mark-unsafe
+   #:safe-moves-list #:safe-moves-count
    #:safe-moves #:safe-moves-avoiding-heads
    #:enemy-snakes #:closest-enemy-head #:tail-coord
    #:battlesnake #:snake-info #:on-start #:on-move #:on-end

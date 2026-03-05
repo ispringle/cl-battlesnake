@@ -7,10 +7,11 @@
     (let* ((me    (game-state-you state))
            (board (game-state-board state))
            (head  (snake-head me))
-           (safe  (safe-moves state))
+           (bv    (safe-moves state))
+           (safe  (safe-moves-list bv))
            (food  (nearest-food head board)))
       (cond
-        ((null safe) +up+)
+        ((zerop (safe-moves-count bv)) +up+)
         ((null food) (nth (random (length safe)) safe))
         (t (first (sort (copy-list safe) #'<
                         :key (lambda (dir)

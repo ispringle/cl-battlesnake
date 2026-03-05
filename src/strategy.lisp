@@ -30,8 +30,9 @@
 (defgeneric on-move (snake state)
   (:documentation "Called each turn. Return a direction string, optionally a shout as second value.")
   (:method ((s battlesnake) state)
-    (let ((moves (safe-moves state)))
-      (if moves
+    (let* ((bv (safe-moves state))
+           (moves (safe-moves-list bv)))
+      (if (plusp (safe-moves-count bv))
           (nth (random (length moves)) moves)
           +up+))))
 
@@ -51,7 +52,8 @@ Usage:
     (:name \"Snakey\" :color \"#00ff00\" :head \"fang\" :tail \"bolt\"
      :author \"me\")
     (:move (state)
-      (or (first (safe-moves state)) +up+))
+      (let ((moves (safe-moves-list (safe-moves state))))
+        (or (first moves) +up+)))
     (:start (state) ...)   ; optional
     (:end (state) ...))    ; optional"
   (let ((move-form  (cdr (assoc :move options)))

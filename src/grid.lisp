@@ -48,30 +48,34 @@
 ;;; --- Safe moves ---
 
 (defun safe-moves (state)
-  "Return a list of directions that don't immediately kill us.
+  "Return a 4-bit vector indicating safe directions.
 Avoids: out of bounds, self-collision, other snake bodies."
   (let* ((head  (snake-head (game-state-you state)))
          (board (game-state-board state))
-         (bodies (all-snake-cells board)))
-    (loop for dir in (all-directions)
-          for dest = (move-coord head dir)
-          when (and (in-bounds-p dest board)
-                    (not (coord-member dest bodies)))
-            collect dir)))
+         (bodies (all-snake-cells board))
+         (bv (make-safe-moves)))
+    (dolist (dir (all-directions) bv)
+      (let ((dest (move-coord head dir)))
+        (unless (and (in-bounds-p dest board)
+                     (not (coord-member dest bodies)))
+          (mark-unsafe bv dir))))))
 
 (defun safe-moves-avoiding-heads (state)
-  "Like SAFE-MOVES but also avoids cells adjacent to longer/equal enemy heads."
+  "Like SAFE-MOVES but also avoids cells adjacent to longer/equal enemy heads.
+Returns a 4-bit vector."
   (let* ((me     (game-state-you state))
          (board  (game-state-board state))
          (my-len (snake-length me))
+         (bv     (safe-moves state))
          ;; cells next to enemy heads that are at least as long
          (danger (loop for s in (board-snakes board)
                        unless (string= (snake-id s) (snake-id me))
                          when (>= (snake-length s) my-len)
                            nconc (mapcar #'cdr (neighbors (snake-head s))))))
-    (remove-if (lambda (dir)
+    (dolist (dir (all-directions) bv)
+      (when (and (safe-move-p bv dir)
                  (coord-member (move-coord (snake-head me) dir) danger))
-               (safe-moves state))))
+        (mark-unsafe bv dir)))))
 
 ;;; --- Distance ---
 

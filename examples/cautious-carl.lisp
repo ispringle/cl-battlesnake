@@ -7,8 +7,9 @@
     (let* ((me     (game-state-you state))
            (board  (game-state-board state))
            (head   (snake-head me))
-           (safe   (safe-moves-avoiding-heads state))
-           (safe   (or safe (safe-moves state))))
+           (bv     (safe-moves-avoiding-heads state))
+           (safe   (safe-moves-list bv))
+           (safe   (or safe (safe-moves-list (safe-moves state)))))
       (when (null safe)
         (return-from on-move +up+))
       (let ((scored (mapcar
