@@ -14,13 +14,13 @@
   "Escape a string for safe JSON embedding."
   (with-output-to-string (out)
     (loop for c across s do
-      (case c
-        (#\" (write-string "\\\"" out))
-        (#\\ (write-string "\\\\" out))
-        (#\Newline (write-string "\\n" out))
-        (#\Return (write-string "\\r" out))
-        (#\Tab (write-string "\\t" out))
-        (t (write-char c out))))))
+          (case c
+            (#\" (write-string "\\\"" out))
+            (#\\ (write-string "\\\\" out))
+            (#\Newline (write-string "\\n" out))
+            (#\Return (write-string "\\r" out))
+            (#\Tab (write-string "\\t" out))
+            (t (write-char c out))))))
 
 (defun move-json (direction &optional shout)
   "Build JSON response for a move. DIRECTION is a string like \"up\"."
@@ -160,12 +160,13 @@
   (loop for (path . snake-class) in snake-configs
         for instance = (make-instance snake-class)
         do (setf (gethash path *snake-instances*) instance)
-           (format t "~&Registered snake '~A' at path ~A~%"
-                   (snake-info-name instance) path))
+        (format t "~&Registered snake '~A' at path ~A~%"
+                (snake-info-name instance) path))
 
   ;; Start server with Clack + Woo
   (setf *server* (clack:clackup (make-app) :server :woo :port port
-                                :use-default-middlewares nil))
+                                :use-default-middlewares nil
+                                :address "0.0.0.0"))
   (format t "~&Multi-snake server running on port ~D with ~D snakes~%"
           port (hash-table-count *snake-instances*))
   *server*)

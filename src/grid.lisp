@@ -64,7 +64,6 @@ Avoids: out of bounds, self-collision, other snake bodies.
 Uses a bit-array occupancy grid for O(1) collision checks."
   (let* ((head  (snake-head (game-state-you state)))
          (board (game-state-board state))
-<<<<<<< HEAD
          (occ   (make-occupancy-grid board))
          (bv    (make-safe-moves)))
     (declare (dynamic-extent occ))
